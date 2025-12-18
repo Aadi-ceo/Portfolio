@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aadarsh — Portfolio</title>
+  <meta name="description" content="Aadarsh — Frontend Developer & 3D tinkerer. Minimal, responsive portfolio with 3D elements, animations and light/dark mode."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    /*
+      Inline styles: minimalist, animated, supports light/dark via data-theme on <html>.
+      Respects prefers-reduced-motion and saves user theme choice to localStorage.
+    */
+
+    :root {
+      --bg: #071017;
+      --panel: rgba(255,255,255,0.03);
+      --muted: #9fb3bd;
+      --text: #e6eef2;
+      --accent: #06b6d4;
+      --accent-2: #7c3aed;
+      --glass: rgba(255,255,255,0.04);
+      --container: 1100px;
+      --radius: 14px;
+      --shadow-1: 0 8px 30px rgba(2,6,8,0.6);
+      --shadow-2: 0 14px 50px rgba(2,6,8,0.7);
+      --speed: 360ms;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Light theme overrides */
+    html[data-theme="light"] {
+      --bg: #f6f8fa;
+      --panel: rgba(2,6,8,0.03);
+      --muted: #5b6b72;
+      --text: #071019;
+      --glass: rgba(2,6,8,0.03);
+      --shadow-1: 0 8px 30px rgba(7,12,16,0.06);
+      --shadow-2: 0 18px 60px rgba(7,12,16,0.07);
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      :root { --speed: 1ms; }
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,var(--bg), rgba(0,0,0,0.02));
+      color:var(--text);
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+      transition:background var(--speed) ease, color var(--speed) ease;
+      scroll-behavior:smooth;
+    }
+
+    /* Background canvas fills viewport */
+    #bg-canvas{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:0;
+      display:block;
+      pointer-events:none;
+      filter:contrast(1.05) saturate(1.05);
+    }
+
+    /* Layout container */
+    .container{
+      max-width:var(--container);
+      margin:0 auto;
+      padding:1.5rem;
+      position:relative;
+      z-index:3;
+    }
+
+    /* Header */
+    .site-header{
+      position:fixed;
+      top:12px;
+      left:0;
+      right:0;
+      display:flex;
+      justify-content:center;
+      z-index:6;
+      pointer-events:none;
+    }
+    .header-inner{
+      width:100%;
+      max-width:var(--container);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      padding:0.35rem;
+      pointer-events:auto;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:12px;
+      box-shadow:var(--shadow-1);
+      backdrop-filter: blur(8px) saturate(1.05);
+    }
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:.6rem;
+      color:var(--text);
+      text-decoration:none;
+      font-weight:800;
+      font-size:1rem;
+      letter-spacing:0.02em;
+    }
+    .logo svg{display:block}
+
+    nav.nav{display:flex;gap:0.6rem}
+    nav a{
+      color:var(--muted);
+      text-decoration:none;
+      font-weight:600;
+      padding:.45rem .6rem;
+      border-radius:8px;
+      transition: color var(--speed), transform var(--speed);
+    }
+    nav a:focus, nav a:hover { color:var(--text); transform:translateY(-2px); }
+
+    .controls{display:flex;gap:.6rem;align-items:center}
+    .theme-btn{
+      background:transparent;border:1px solid var(--glass);padding:.45rem .6rem;border-radius:10px;cursor:pointer;color:var(--muted);
+      display:inline-flex;align-items:center;gap:.45rem;font-weight:700;
+      transition:all var(--speed) ease;
+    }
+    .theme-btn:hover{transform:translateY(-3px); color:var(--text)}
+
+    /* Hero */
+    main{padding-top:120px}
+    .hero {
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      gap:2rem;
+      align-items:center;
+      min-height:calc(100vh - 150px);
+    }
+    .title {
+      font-size:clamp(2.1rem,4.5vw,3.2rem);
+      margin:0 0 .6rem 0;
+      line-height:1.02;
+      letter-spacing:-0.02em;
+      font-weight:800;
+      color:var(--text);
+      opacity:0; transform:translateY(8px);
+      transition:opacity 520ms ease, transform 520ms ease;
+    }
+    .subtitle{
+      color:var(--muted);
+      margin:0 0 1.2rem 0;
+      font-size:1rem;
+      max-width:56ch;
+      opacity:0; transform:translateY(8px);
+      transition:opacity 520ms 120ms ease, transform 520ms 120ms ease;
+    }
+    .hero-ctas{display:flex;gap:.6rem;flex-wrap:wrap;opacity:0;transform:translateY(8px);transition:opacity 520ms 220ms ease, transform 520ms 220ms ease}
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:.6rem;
+      padding:.7rem 1rem;
+      border-radius:10px;
+      text-decoration:none;
+      font-weight:800;
+      cursor:pointer;
+      border:1px solid transparent;
+      transition:transform var(--speed), box-shadow var(--speed);
+    }
+    .btn.primary{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color: #021216;
+      box-shadow: 0 10px 30px rgba(3,10,12,0.25);
+    }
+    .btn.ghost{
+      background:transparent;color:var(--text);border:1px solid var(--glass)
+    }
+
+    /* Right card with 3D logo */
+    .profile-card{
+      width:100%;
+      max-width:400px;
+      padding:1rem;
+      border-radius:18px;
+      background:var(--panel);
+      border:1px solid var(--glass);
+      box-shadow:var(--shadow-1);
+      display:flex;
+      gap:1rem;
+      align-items:center;
+      justify-content:space-between;
+      transform-style:preserve-3d;
+      transition:transform 260ms ease, box-shadow 260ms ease;
+      opacity:0; transform:translateY(12px);
+      transition:opacity 520ms 80ms ease, transform 520ms 80ms ease;
+    }
+    .profile-left{display:flex;flex-direction:column;gap:.25rem}
+    .profile-left h3{margin:0;font-size:1.05rem}
+    .profile-left p{margin:0;color:var(--muted);font-weight:600;font-size:.9rem}
+    .stats{display:flex;gap:.5rem;margin-top:.6rem}
+    .stat{background:transparent;padding:.45rem .6rem;border-radius:10px;border:1px solid var(--glass);font-weight:700;color:var(--muted)}
+    .profile-3d{width:110px;height:110px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
+
+    /* Projects + minimalist cards */
+    section { margin-top:3.2rem; }
+    h2{color:var(--text);margin:0 0 .8rem 0;font-size:1.2rem}
+    .projects-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}
+    .project-card{
+      background:transparent;border-radius:12px;padding:1rem;border:1px solid var(--glass);
+      box-shadow: 0 6px 24px rgba(2,6,8,0.2);
+      transition:transform 360ms cubic-bezier(.2,.9,.3,1), box-shadow 360ms, border-color var(--speed);
+      transform-origin:center;
+      display:flex;flex-direction:column;gap:.6rem;
+    }
+    .project-card:hover{transform:translateY(-8px) scale(1.01);box-shadow:var(--shadow-2);border-color:rgba(255,255,255,0.06)}
+    .project-card h3{margin:0;font-size:1rem}
+    .project-card p{margin:0;color:var(--muted);font-size:.95rem}
+
+    /* Footer */
+    .site-footer{padding:2rem 0;color:var(--muted);border-top:1px solid rgba(255,255,255,0.02);margin-top:3rem}
+    .site-footer a{color:var(--muted);text-decoration:none}
+
+    /* Reveal animation helper */
+    .reveal{opacity:1; transform:none}
+
+    /* Mobile */
+    @media (max-width:980px){
+      .hero{grid-template-columns:1fr; padding:1rem 0 3rem 0}
+      .projects-grid{grid-template-columns:repeat(2,1fr)}
+      .header-inner{padding:.6rem}
+    }
+    @media (max-width:620px){
+      nav.nav{display:none}
+      .projects-grid{grid-template-columns:1fr}
+      .profile-card{width:94%}
+      .header-inner{gap:.5rem}
+    }
+
+    /* Minimal accessibility focus */
+    :focus{outline:2px dashed rgba(6,182,212,0.18);outline-offset:3px}
+
+  </style>
+</head>
+<body>
+  <!-- background 3D canvas -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+  <header class="site-header">
+    <div class="header-inner container" role="banner">
+      <a class="logo" href="#home" aria-label="Aadarsh home">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <image href="C:\Users\Hp\Downloads\Instagram\Visual Elements\aadi.png" x="2" y="2" width="20" height="20" rx="2"/>
+
+          <rect x="2" y="2" width="20" height="20" rx="2" fill="url(C:\Users\Hp\Downloads\Instagram\Visual Elements\aadi.png)"/>
+          <defs>
+            <linearGradient id="lg" x1="0" x2="1">
+              <stop offset="0%" stop-color="#06b6d4"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>Aadarsh</span>
+      </a>
+
+      <nav class="nav" id="nav" role="navigation" aria-label="Main">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <div class="controls">
+        <button id="themeBtn" class="theme-btn" aria-pressed="false" title="Toggle theme">🌗 Theme</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="home" class="container" role="main">
+    <section class="hero" aria-label="Intro">
+      <div class="hero-left">
+        <h1 class="title">Hi, I'm Aadarsh — A tech-curious learner building skills.</h1>
+        <p class="subtitle">I am a 9th-grade student with a strong interest in technology and creativity. I enjoy coding, designing, and video editing, and I am constantly learning new skills to improve myself. I like exploring different fields, especially artificial intelligence, and understanding how things work.</p>
+
+        <div class="hero-ctas">
+          <a class="btn primary" href="#projects">View Projects</a>
+          <a class="btn ghost" href="#contact">Get in touch</a>
+        </div>
+      </div>
+
+      <div>
+        <div class="profile-card" id="profileCard" tabindex="0" aria-label="Profile card">
+          <div class="profile-left">
+            <h3>Aadarsh | The Tech Guy</h3>
+            <div><p> Developer : Designer :  Video Editor : AI Enthusiast</p></div>
+            <div class="stats" aria-hidden="true">
+              <div class="stat"><strong>10+</strong> projects</div>
+              <div class="stat"><strong>15</strong> y/o</div>
+            </div>
+          </div>
+
+          <div class="profile-3d" aria-hidden="true">
+            <!-- small 3D logo canvas -->
+            <canvas id="logo3d" width="220" height="220" style="width:100%;height:100%;display:block"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" aria-labelledby="about-label">
+      <h2 id="about-label">About</h2>
+      <p class="muted"><b>Name:</b>  Aadarsh Saravagi
+<br> <b>Date of Birth:</b> 22 May 
+<br><b>Location: </b> Gurugram,Haryana
+<br><b>Education:</b> 9th Grade Student</p>
+      <div class="skills-grid" style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap" aria-hidden="true">
+        <div class="stat">Vibe Coding</div>
+        <div class="stat">Python Basic</div>
+        <div class="stat">Block-based programming </div>
+        <div class="stat">Power BI - Dashboard</div>
+        <div class="stat">Explored 150+ AI Tools</div>
+      </div>
+    </section>
+
+    <section id="projects" aria-labelledby="projects-label">
+      <h2 id="projects-label">Projects</h2>
+      <div class="projects-grid" aria-live="polite">
+        <article class="project-card" tabindex="0">
+          <h3>3D Portfolio Scene</h3>
+          <p>Minimal portfolio with layered 3D background and selective motion.</p>
+        </article>
+
+        <article class="project-card" tabindex="0">
+          <h3>Interactive Landing</h3>
+          <p>Fast landing with micro-interactions and clear hierarchy.</p>
+        </article>
+
+        <article class="project-card" tabindex="0">
+          <h3>Data Viz Dashboard</h3>
+          <p>Accessible charts and performant animations for insights.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-label" style="margin-top:2.4rem">
+      <h2 id="contact-label">Contact</h2>
+      <p>Interested in working together? I answer emails promptly.</p>
+      <a class="btn primary" href="aadarsh.saravagi@gmail.com">Email me</a>
+    </section>
+
+    <footer class="site-footer" role="contentinfo">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <p style="margin:0">© <span id="year"></span> Aadarsh — Portfolio</p>
+        <div style="display:flex;gap:.6rem">
+          <a href="https://github.com/Aadi-ceo" aria-label="GitHub">GitHub</a>
+          <a href="https://www.linkedin.com/in/aadarsh-saravagi-ceo/" aria-label="LinkedIn">LinkedIn</a>
+          <a href="https://www.instagram.com/ceo.aadi_/" aria-label="Instagram">Instagram</a>
+
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- three.js for background + logo -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+
+  <script>
+    // Utilities
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const setAttr = (el, k, v) => el.setAttribute(k, v);
+
+    // YEAR
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // THEME: read from localStorage, falls back to prefers-color-scheme
+    (function initTheme() {
+      const html = document.documentElement;
+      const saved = localStorage.getItem('aadarsh:theme');
+      if (saved === 'light' || saved === 'dark') {
+        html.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+      } else {
+        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (prefersLight) html.setAttribute('data-theme', 'light');
+        else html.removeAttribute('data-theme'); // dark default
+      }
+      const btn = document.getElementById('themeBtn');
+      function updateBtn() {
+        const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        btn.textContent = t === 'light' ? '🌞 Light' : '🌙 Dark';
+        setAttr(btn, 'aria-pressed', t === 'light');
+      }
+      btn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        const next = cur === 'light' ? 'dark' : 'light';
+        if (next === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        else document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('aadarsh:theme', next);
+        updateBtn();
+      });
+      updateBtn();
+    })();
+
+    // Simple reveal on scroll (intersection observer)
+    (function initReveal() {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        document.querySelectorAll('.title, .subtitle, .hero-ctas, .profile-card').forEach(el => el.classList.add('reveal'));
+        return;
+      }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('reveal');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.08 });
+      document.querySelectorAll('.title, .subtitle, .hero-ctas, .profile-card, .project-card, section h2').forEach(el => io.observe(el));
+    })();
+
+    // Card tilt interactions (mouse) - simple and respects reduced motion
+    (function tiltInit() {
+      if (prefersReduced) return;
+      const cards = document.querySelectorAll('.project-card, #profileCard');
+      cards.forEach(el => {
+        el.addEventListener('mousemove', (e) => {
+          const r = el.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width;
+          const py = (e.clientY - r.top) / r.height;
+          const ry = (px - 0.5) * -10;
+          const rx = (py - 0.5) * 8;
+          el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(6px)`;
+        });
+        el.addEventListener('mouseleave', () => el.style.transform = '');
+        el.addEventListener('focus', () => el.style.transform = 'perspective(900px) translateZ(6px)');
+        el.addEventListener('blur', () => el.style.transform = '');
+      });
+    })();
+
+    // -----------------------------
+    // THREE.JS BACKGROUND (soft cloud + particles)
+    // -----------------------------
+    (function background3D() {
+      if (prefersReduced) return; // keep simple for reduced motion
+
+      const canvas = document.getElementById('bg-canvas');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+      camera.position.set(0, 0, 120);
+
+      // soft colored lights
+      const l1 = new THREE.PointLight(0x06b6d4, 0.9, 400);
+      l1.position.set(-80, -40, 100);
+      scene.add(l1);
+      const l2 = new THREE.PointLight(0x7c3aed, 0.9, 400);
+      l2.position.set(80, 40, 120);
+      scene.add(l2);
+
+      // particles cloud
+      const count = 900;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const phi = Math.acos(2 * Math.random() - 1);
+        const theta = Math.random() * Math.PI * 2;
+        const r = 40 + Math.random() * 150;
+        const i3 = i * 3;
+        positions[i3] = Math.sin(phi) * Math.cos(theta) * r;
+        positions[i3 + 1] = Math.sin(phi) * Math.sin(theta) * r * 0.6;
+        positions[i3 + 2] = Math.cos(phi) * r * 0.8;
+
+        const t = Math.random();
+        colors[i3] = (6 + (124 - 6) * t) / 255;
+        colors[i3 + 1] = (182 + (58 - 182) * t) / 255;
+        colors[i3 + 2] = (212 + (237 - 212) * t) / 255;
+      }
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const mat = new THREE.PointsMaterial({
+        size: window.devicePixelRatio > 1 ? 1.9 : 1.4,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const pts = new THREE.Points(geom, mat);
+      scene.add(pts);
+
+      // soft background plane
+      const bgGeo = new THREE.PlaneGeometry(2000, 1200);
+      const bgMat = new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 } },
+        vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+        fragmentShader: `varying vec2 vUv; uniform float uTime;
+          void main(){
+            vec3 a = vec3(0.03,0.05,0.08);
+            vec3 b = vec3(0.02,0.06,0.09);
+            float f = smoothstep(0.0,1.0,vUv.y);
+            vec3 col = mix(a,b,f);
+            col += 0.02 * sin(uTime*0.6 + vUv.x*6.0);
+            gl_FragColor = vec4(col,1.0);
+          }`,
+        depthWrite: false,
+        depthTest: false,
+        side: THREE.BackSide
+      });
+      const bgMesh = new THREE.Mesh(bgGeo, bgMat);
+      bgMesh.position.z = -600;
+      scene.add(bgMesh);
+
+      // mouse parallax
+      let mx = 0, my = 0;
+      window.addEventListener('mousemove', (e) => {
+        mx = (e.clientX / innerWidth) * 2 - 1;
+        my = (e.clientY / innerHeight) * 2 - 1;
+      }, { passive: true });
+
+      window.addEventListener('resize', () => {
+        renderer.setSize(innerWidth, innerHeight);
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+      });
+
+      let t = 0;
+      function animate() {
+        t += 0.006;
+        pts.rotation.y = t * 0.08;
+        pts.rotation.x = Math.sin(t * 0.12) * 0.02;
+        camera.position.x += (mx * 18 - camera.position.x) * 0.06;
+        camera.position.y += (-my * 12 - camera.position.y) * 0.06;
+        camera.lookAt(0,0,0);
+        bgMat.uniforms.uTime.value = t;
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    // -----------------------------
+    // Small 3D Logo inside profile card
+    // -----------------------------
+    (function logo3D() {
+      const canvas = document.getElementById('logo3d');
+      if (!canvas || prefersReduced) {
+        // draw fallback gradient block if reduced motion
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          const g = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+          g.addColorStop(0, '#06b6d4'); g.addColorStop(1, '#7c3aed');
+          ctx.fillStyle = g; ctx.fillRect(0,0,canvas.width,canvas.height);
+        }
+        return;
+      }
+
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(canvas.width, canvas.height, false);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+      camera.position.set(0, 0, 5);
+
+      // geometry: low-poly icosahedron
+      const geo = new THREE.IcosahedronGeometry(1.2, 1);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x0ee0d8,
+        emissive: 0x071217,
+        metalness: 0.25,
+        roughness: 0.2,
+        flatShading: true,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      scene.add(mesh);
+
+      // wireframe outline
+      const wire = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.06, transparent: true })
+      );
+      scene.add(wire);
+
+      // lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.35);
+      scene.add(amb);
+      const p1 = new THREE.PointLight(0x06b6d4, 0.8, 50);
+      p1.position.set(-3, -2, 5); scene.add(p1);
+      const p2 = new THREE.PointLight(0x7c3aed, 0.7, 50);
+      p2.position.set(3, 2, 5); scene.add(p2);
+
+      // pointer parallax
+      let px = 0, py = 0;
+      canvas.addEventListener('mousemove', (e) => {
+        const r = canvas.getBoundingClientRect();
+        px = (e.clientX - r.left) / r.width - 0.5;
+        py = (e.clientY - r.top) / r.height - 0.5;
+      }, { passive: true });
+
+      // resize handler (canvas is fixed so no full resize)
+      function animate() {
+        mesh.rotation.y += 0.008;
+        mesh.rotation.x += 0.003;
+        wire.rotation.copy(mesh.rotation);
+
+        // gentle parallax
+        mesh.rotation.x += (py * 0.12 - mesh.rotation.x) * 0.06;
+        mesh.rotation.y += (px * 0.12 - mesh.rotation.y) * 0.06;
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    // Simple keyboard accessibility controls for project cards
+    (function keyboardControls() {
+      document.querySelectorAll('.project-card').forEach((el) => {
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            el.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.98)' }, { transform: 'scale(1)' }], { duration: 220 });
+          }
+        });
+      });
+    })();
+
+  </script>
+</body>
+</html>
